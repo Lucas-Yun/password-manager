@@ -21,4 +21,18 @@ std::string xorEncryptDecrypt(const std::string& data);
  */
 std::string getHiddenInput();
 
+/**
+ * @brief 检测密码强度
+ * @param password 密码
+ * @return 强度等级：弱/中/强
+ */
+std::string checkPasswordStrength(const std::string& password);
+
+/**
+ * @brief 生成随机强密码
+ * @param length 密码长度
+ * @return 生成的密码
+ */
+std::string generateRandomPassword(int length = 16);
+
 #endif // CRYPTO_H

@@ -50,8 +50,31 @@ void addInfo(const string& username) {
         return;
     }
 
-    cout << "请输入密码: ";
-    string password = getHiddenInput();
+    cout << "请选择密码输入方式:" << endl;
+    cout << "1、手动输入密码" << endl;
+    cout << "2、生成随机强密码" << endl;
+    cout << "请选择（输入序号）: ";
+    string pwdChoice;
+    getline(cin, pwdChoice);
+
+    string password;
+    if (pwdChoice == "2") {
+        cout << "请输入密码长度（默认16）: ";
+        string lenStr;
+        getline(cin, lenStr);
+        int length = 16;
+        if (!lenStr.empty()) {
+            length = atoi(lenStr.c_str());
+            if (length < 8) length = 8;
+            if (length > 64) length = 64;
+        }
+        password = generateRandomPassword(length);
+        cout << "生成的密码: " << password << endl;
+        cout << "密码强度: " << checkPasswordStrength(password) << endl;
+    } else {
+        cout << "请输入密码: ";
+        password = getHiddenInput();
+    }
 
     if (password.empty()) {
         cout << "密码不能为空！" << endl;
@@ -59,6 +82,8 @@ void addInfo(const string& username) {
         _getch();
         return;
     }
+
+    cout << "密码强度: " << checkPasswordStrength(password) << endl;
 
     map<string, PlatformInfo> passwords = loadPasswords(username);
     PlatformInfo info;
@@ -146,6 +171,195 @@ void deleteInfo(const string& username) {
     _getch();
 }
 
+void editInfo(const string& username) {
+    cout << "\n=== 修改信息 ===" << endl;
+    cin.ignore();
+
+    cout << "请输入要修改的平台名称: ";
+    string platform;
+    getline(cin, platform);
+
+    if (platform.empty()) {
+        cout << "平台名称不能为空！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    map<string, PlatformInfo> passwords = loadPasswords(username);
+    auto it = passwords.find(platform);
+
+    if (it == passwords.end()) {
+        cout << "未找到该平台的信息" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    cout << "平台 [" << platform << "] 当前信息:" << endl;
+    cout << "当前账号列表:" << endl;
+    for (size_t i = 0; i < it->second.accounts.size(); i++) {
+        cout << "  " << (i + 1) << ". " << it->second.accounts[i] << endl;
+    }
+    cout << "当前密码: " << it->second.password << endl;
+
+    cout << "\n请选择要修改的内容:" << endl;
+    cout << "1、修改账号" << endl;
+    cout << "2、修改密码" << endl;
+    cout << "3、修改账号和密码" << endl;
+    cout << "0、取消修改" << endl;
+    cout << "请选择（输入序号）: ";
+    string choice;
+    getline(cin, choice);
+
+    if (choice == "0") {
+        cout << "已取消修改。" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    vector<string> newAccounts = it->second.accounts;
+    string newPassword = it->second.password;
+
+    if (choice == "1" || choice == "3") {
+        cout << "请输入新的账号列表（输入完成后直接回车，结束输入也直接回车）:" << endl;
+        newAccounts.clear();
+        while (true) {
+            cout << "账号" << (newAccounts.size() + 1) << ": ";
+            string account;
+            getline(cin, account);
+            if (account.empty()) {
+                break;
+            }
+            newAccounts.push_back(account);
+            cout << "已添加账号: " << account << endl;
+        }
+
+        if (newAccounts.empty()) {
+            cout << "至少需要输入一个账号！修改失败。" << endl;
+            cout << "按任意键返回..." << endl;
+            _getch();
+            return;
+        }
+    }
+
+    if (choice == "2" || choice == "3") {
+        cout << "请选择密码输入方式:" << endl;
+        cout << "1、手动输入密码" << endl;
+        cout << "2、生成随机强密码" << endl;
+        cout << "请选择（输入序号）: ";
+        string pwdChoice;
+        getline(cin, pwdChoice);
+
+        if (pwdChoice == "2") {
+            cout << "请输入密码长度（默认16）: ";
+            string lenStr;
+            getline(cin, lenStr);
+            int length = 16;
+            if (!lenStr.empty()) {
+                length = atoi(lenStr.c_str());
+                if (length < 8) length = 8;
+                if (length > 64) length = 64;
+            }
+            newPassword = generateRandomPassword(length);
+            cout << "生成的密码: " << newPassword << endl;
+            cout << "密码强度: " << checkPasswordStrength(newPassword) << endl;
+        } else {
+            cout << "请输入新密码: ";
+            newPassword = getHiddenInput();
+        }
+
+        if (newPassword.empty()) {
+            cout << "密码不能为空！修改失败。" << endl;
+            cout << "按任意键返回..." << endl;
+            _getch();
+            return;
+        }
+
+        cout << "密码强度: " << checkPasswordStrength(newPassword) << endl;
+    }
+
+    if (choice == "1" || choice == "2" || choice == "3") {
+        it->second.accounts = newAccounts;
+        it->second.password = newPassword;
+        savePasswords(username, passwords);
+        cout << "修改成功！" << endl;
+    } else {
+        cout << "输入无效，已取消修改。" << endl;
+    }
+
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
+void listPlatforms(const string& username) {
+    cout << "\n=== 平台列表 ===" << endl;
+
+    map<string, PlatformInfo> passwords = loadPasswords(username);
+
+    if (passwords.empty()) {
+        cout << "当前没有保存任何平台信息。" << endl;
+    } else {
+        cout << "已保存的平台列表（共 " << passwords.size() << " 个）:" << endl;
+        int index = 1;
+        for (const auto& pair : passwords) {
+            cout << index << ". " << pair.first;
+            cout << " （账号数: " << pair.second.accounts.size() << "）" << endl;
+            index++;
+        }
+    }
+
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
+void exportData(const string& username) {
+    cout << "\n=== 导出数据 ===" << endl;
+
+    map<string, PlatformInfo> passwords = loadPasswords(username);
+
+    if (passwords.empty()) {
+        cout << "当前没有数据可导出。" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    string filename = DATA_DIR + username + "_backup.txt";
+    ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        cout << "创建导出文件失败！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    outFile << "=== 密码备份文件 ===" << endl;
+    outFile << "用户名: " << username << endl;
+    outFile << "备份时间: " << __DATE__ << " " << __TIME__ << endl;
+    outFile << "========================" << endl << endl;
+
+    int index = 1;
+    for (const auto& pair : passwords) {
+        outFile << index << ". 平台: " << pair.first << endl;
+        outFile << "   账号列表:" << endl;
+        for (size_t i = 0; i < pair.second.accounts.size(); i++) {
+            outFile << "   - " << pair.second.accounts[i] << endl;
+        }
+        outFile << "   密码: " << pair.second.password << endl;
+        outFile << endl;
+        index++;
+    }
+
+    outFile.close();
+    cout << "数据导出成功！" << endl;
+    cout << "导出文件路径: " << filename << endl;
+    cout << "警告：导出文件为明文存储，请妥善保管并及时删除！" << endl;
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
 void showUserMenu(const string& username) {
     while (true) {
         system("cls");
@@ -154,7 +368,10 @@ void showUserMenu(const string& username) {
         cout << "1、添加信息" << endl;
         cout << "2、查询信息" << endl;
         cout << "3、删除信息" << endl;
-        cout << "4、返回上一级" << endl;
+        cout << "4、修改信息" << endl;
+        cout << "5、平台列表" << endl;
+        cout << "6、导出数据" << endl;
+        cout << "7、返回上一级" << endl;
         cout << "请选择（输入序号）: ";
 
         string choice;
@@ -167,10 +384,16 @@ void showUserMenu(const string& username) {
         } else if (choice == "3") {
             deleteInfo(username);
         } else if (choice == "4") {
+            editInfo(username);
+        } else if (choice == "5") {
+            listPlatforms(username);
+        } else if (choice == "6") {
+            exportData(username);
+        } else if (choice == "7") {
             cout << "返回上一级..." << endl;
             break;
         } else {
-            cout << "输入无效，请输入1、2、3或4！" << endl;
+            cout << "输入无效，请输入1、2、3、4、5、6或7！" << endl;
             cout << "按任意键继续..." << endl;
             cin.ignore();
             _getch();

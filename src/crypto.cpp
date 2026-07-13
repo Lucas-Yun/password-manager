@@ -1,6 +1,8 @@
 #include "crypto.h"
 #include <conio.h>
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -27,5 +29,43 @@ string getHiddenInput() {
         }
     }
     cout << endl;
+    return password;
+}
+
+string checkPasswordStrength(const string& password) {
+    int score = 0;
+    bool hasLower = false, hasUpper = false, hasDigit = false, hasSpecial = false;
+
+    for (char c : password) {
+        if (islower(c)) hasLower = true;
+        else if (isupper(c)) hasUpper = true;
+        else if (isdigit(c)) hasDigit = true;
+        else hasSpecial = true;
+    }
+
+    if (hasLower) score++;
+    if (hasUpper) score++;
+    if (hasDigit) score++;
+    if (hasSpecial) score++;
+    if (password.length() >= 8) score++;
+    if (password.length() >= 12) score++;
+
+    if (score <= 2) return "弱";
+    if (score <= 4) return "中";
+    return "强";
+}
+
+string generateRandomPassword(int length) {
+    const string chars =
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789"
+        "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+    srand(static_cast<unsigned int>(time(nullptr)));
+    string password;
+    for (int i = 0; i < length; i++) {
+        password += chars[rand() % chars.size()];
+    }
     return password;
 }

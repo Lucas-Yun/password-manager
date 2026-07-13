@@ -24,4 +24,22 @@ void showUserMenu(const std::string& username);
  */
 void showAdminMenu(const std::string& username);
 
+/**
+ * @brief 修改/编辑已有平台信息
+ * @param username 当前登录用户名
+ */
+void editInfo(const std::string& username);
+
+/**
+ * @brief 查看所有已保存平台列表
+ * @param username 当前登录用户名
+ */
+void listPlatforms(const std::string& username);
+
+/**
+ * @brief 导出用户数据到文本文件
+ * @param username 当前登录用户名
+ */
+void exportData(const std::string& username);
+
 #endif // MENU_H
