@@ -17,7 +17,7 @@ map<string, string> loadUsers() {
         string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
         file.close();
         if (!content.empty()) {
-            string decrypted = xorEncryptDecrypt(content);
+            string decrypted = decryptData(content);
             size_t pos = 0;
             while (pos < decrypted.size()) {
                 size_t newlinePos = decrypted.find('\n', pos);
@@ -41,7 +41,7 @@ void saveUsers(const map<string, string>& users) {
     for (const auto& pair : users) {
         data += pair.first + ":" + pair.second + "\n";
     }
-    string encrypted = xorEncryptDecrypt(data);
+    string encrypted = encryptData(data);
     string filepath = DATA_DIR + USER_FILE;
     ofstream file(filepath, ios::binary);
     if (file.is_open()) {
@@ -58,7 +58,7 @@ map<string, PlatformInfo> loadPasswords(const string& username) {
         string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
         file.close();
         if (!content.empty()) {
-            string decrypted = xorEncryptDecrypt(content);
+            string decrypted = decryptData(content);
             size_t pos = 0;
             while (pos < decrypted.size()) {
                 size_t newlinePos = decrypted.find('\n', pos);
@@ -116,7 +116,7 @@ void savePasswords(const string& username, const map<string, PlatformInfo>& pass
         }
         data += ":" + pair.second.password + "\n";
     }
-    string encrypted = xorEncryptDecrypt(data);
+    string encrypted = encryptData(data);
     string filepath = DATA_DIR + username + ".dat";
     ofstream file(filepath, ios::binary);
     if (file.is_open()) {

@@ -9,11 +9,18 @@
  */
 
 /**
- * @brief XOR 加密/解密
+ * @brief 加密数据（使用盐值+多字节密钥流）
  * @param data 原始数据
- * @return 加密/解密后的数据
+ * @return 加密后的数据（前8字节为盐值）
  */
-std::string xorEncryptDecrypt(const std::string& data);
+std::string encryptData(const std::string& data);
+
+/**
+ * @brief 解密数据
+ * @param data 加密后的数据（前8字节为盐值）
+ * @return 原始数据
+ */
+std::string decryptData(const std::string& data);
 
 /**
  * @brief 隐藏输入（密码显示为 *）

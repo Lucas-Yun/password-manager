@@ -9,7 +9,7 @@ const std::string ADMIN_USERNAME = "Admin";
 const std::string ADMIN_PASSWORD = "admin_root";
 const std::string DATA_DIR = "data\\";
 const std::string USER_FILE = "users.dat";
-const char ENCRYPT_KEY = 0x5A;
+const std::string MASTER_KEY = "P@ssw0rdMgr2024!";
 
 // ========== 数据结构 ==========
 

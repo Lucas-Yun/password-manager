@@ -6,12 +6,62 @@
 
 using namespace std;
 
-string xorEncryptDecrypt(const string& data) {
-    string result = data;
-    for (size_t i = 0; i < result.size(); i++) {
-        result[i] ^= ENCRYPT_KEY;
+static unsigned char rotateLeft(unsigned char value, int shift) {
+    return (value << shift) | (value >> (8 - shift));
+}
+
+static string generateSalt() {
+    const string chars =
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789"
+        "!@#$%^&*";
+    string salt;
+    salt.reserve(8);
+    for (int i = 0; i < 8; i++) {
+        salt += chars[rand() % chars.size()];
     }
-    return result;
+    return salt;
+}
+
+static string generateKeyStream(const string& salt, size_t length) {
+    string keyStream;
+    keyStream.reserve(length);
+    for (size_t i = 0; i < length; i++) {
+        unsigned char byte = MASTER_KEY[i % MASTER_KEY.length()];
+        byte ^= salt[i % salt.length()];
+        byte = rotateLeft(byte, (i + static_cast<unsigned char>(salt[i % salt.length()])) % 8);
+        byte ^= ((i * 31 + static_cast<unsigned char>(salt[(i * 7) % salt.length()])) % 256);
+        byte ^= MASTER_KEY[(i * 3 + static_cast<unsigned char>(salt[i % salt.length()])) % MASTER_KEY.length()];
+        keyStream.push_back(static_cast<char>(byte));
+    }
+    return keyStream;
+}
+
+string encryptData(const string& data) {
+    string salt = generateSalt();
+    string keyStream = generateKeyStream(salt, data.length());
+    string encrypted;
+    encrypted.reserve(data.length());
+    for (size_t i = 0; i < data.length(); i++) {
+        encrypted.push_back(data[i] ^ keyStream[i]);
+    }
+    return salt + encrypted;
+}
+
+string decryptData(const string& data) {
+    if (data.length() < 8) {
+        return "";
+    }
+    string salt = data.substr(0, 8);
+    string encrypted = data.substr(8);
+    string keyStream = generateKeyStream(salt, encrypted.length());
+    string decrypted;
+    decrypted.reserve(encrypted.length());
+    for (size_t i = 0; i < encrypted.length(); i++) {
+        decrypted.push_back(encrypted[i] ^ keyStream[i]);
+    }
+    return decrypted;
 }
 
 string getHiddenInput() {
