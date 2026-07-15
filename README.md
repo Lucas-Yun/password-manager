@@ -39,19 +39,20 @@
 
 ```
 PasswordManager/
-├── include/                # 头文件
-│   ├── types.h             # 数据结构与常量定义
-│   ├── crypto.h            # 加密/解密模块接口
-│   ├── file_io.h           # 文件读写模块接口
-│   ├── user.h              # 用户管理模块接口
-│   └── menu.h              # 菜单模块接口
-├── src/                    # 源文件
-│   ├── crypto.cpp          # 加密/解密实现
-│   ├── file_io.cpp         # 文件读写实现
-│   ├── user.cpp            # 用户注册/登录实现
-│   ├── menu.cpp            # 菜单与业务逻辑实现
-│   └── main.cpp            # 程序入口
-├── Makefile                # 构建脚本
+├── include/                      # 头文件
+│   ├── types.h                   # 数据结构与常量定义
+│   ├── crypto.h                  # 加密/解密模块接口
+│   ├── file_io.h                 # 文件读写模块接口
+│   ├── user.h                    # 用户管理模块接口
+│   └── menu.h                    # 菜单模块接口
+├── src/                          # 源文件
+│   ├── crypto.cpp                # 加密/解密实现
+│   ├── file_io.cpp               # 文件读写实现
+│   ├── user.cpp                  # 用户注册/登录实现
+│   ├── menu.cpp                  # 菜单与业务逻辑实现
+│   └── main.cpp                  # 程序入口
+├── migrate_encryption.cpp        # 加密格式迁移工具（从旧版XOR加密迁移到新版）
+├── Makefile                      # 构建脚本
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -112,6 +113,33 @@ g++ -std=c++11 -Wall -finput-charset=UTF-8 -Iinclude \
 - 用户密码: `data/<用户名>.dat`（加密存储）
 - 数据目录在程序首次运行时自动创建
 
+## 加密格式迁移工具
+
+项目从 v1.0 升级到 v2.0 时，加密方式从单字节 XOR 升级为盐值+多字节密钥流加密。如果您已有旧版本的数据文件，需要使用迁移工具进行转换。
+
+### 使用方法
+
+```bash
+# 编译迁移工具
+g++ migrate_encryption.cpp -o migrate_encryption.exe
+
+# 运行迁移工具
+migrate_encryption.exe
+```
+
+### 迁移流程
+
+1. 将工具放到项目根目录，确保 `data/` 目录下有旧格式的数据文件
+2. 运行工具，输入 `Y` 确认开始转换
+3. 工具自动将每个 `.dat` 文件转换为新加密格式
+4. 旧文件会自动备份为 `.bak` 文件
+
+### 注意事项
+
+- **运行前务必备份**：建议手动备份整个 `data/` 目录
+- **自动跳过新格式**：如果数据已经是新格式，工具会自动跳过
+- **转换不可逆**：转换后的数据无法还原为旧格式
+
 ## 模块说明
 
 | 模块 | 文件 | 职责 |
@@ -121,6 +149,7 @@ g++ -std=c++11 -Wall -finput-charset=UTF-8 -Iinclude \
 | 用户模块 | `user.h/cpp` | 用户注册、登录验证 |
 | 菜单模块 | `menu.h/cpp` | 界面展示、业务逻辑、输入处理 |
 | 类型定义 | `types.h` | 全局常量与数据结构 |
+| 迁移工具 | `migrate_encryption.cpp` | 旧加密格式转新加密格式 |
 
 ## 许可证
 
