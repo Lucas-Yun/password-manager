@@ -1,39 +1,66 @@
 # PasswordManager Makefile
 # 用法:
-#   make          编译生成可执行文件
+#   make          编译主程序和转换工具
+#   make main     仅编译主程序
+#   make convert  仅编译转换工具
 #   make clean    清理编译产物
-#   make run      编译并运行
+#   make run      编译主程序并运行
 
 # 编译器
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -finput-charset=UTF-8
 INCLUDES = -Iinclude
 
-# 源文件和目标文件
+# 目录
 SRCDIR = src
 INCDIR = include
-TARGET = password_manager
 
-SRCS = $(wildcard $(SRCDIR)/*.cpp)
-OBJS = $(SRCS:.cpp=.o)
+# 主程序
+MAIN_TARGET = password_manager
+MAIN_SRCS = $(SRCDIR)/main.cpp $(SRCDIR)/crypto.cpp $(SRCDIR)/file_io.cpp $(SRCDIR)/user.cpp $(SRCDIR)/menu.cpp
 
-# 默认目标
-all: $(TARGET)
+# 转换工具（必须链接 crypto.cpp，与主程序共享同一套加密实现）
+CONVERT_TARGET = convert
+CONVERT_SRCS = $(SRCDIR)/convert.cpp $(SRCDIR)/crypto.cpp
 
-# 链接
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+# 加密诊断测试程序
+TEST_TARGET = crypto_test
+TEST_SRCS = $(SRCDIR)/crypto_test.cpp $(SRCDIR)/crypto.cpp
 
-# 编译规则
-$(SRCDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+# 默认目标：编译全部
+all: $(MAIN_TARGET) $(CONVERT_TARGET) $(TEST_TARGET)
+
+# 主程序
+$(MAIN_TARGET): $(MAIN_SRCS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(MAIN_SRCS) -o $@
+
+# 转换工具
+$(CONVERT_TARGET): $(CONVERT_SRCS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(CONVERT_SRCS) -o $@
+
+# 诊断测试
+$(TEST_TARGET): $(TEST_SRCS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(TEST_SRCS) -o $@
+
+# 仅编译主程序
+main: $(MAIN_TARGET)
+
+# 仅编译转换工具
+convert: $(CONVERT_TARGET)
+
+# 仅编译诊断测试
+test: $(TEST_TARGET)
+
+# 运行诊断测试
+runtest: $(TEST_TARGET)
+	.\$(TEST_TARGET).exe
 
 # 清理
 clean:
-	del /Q $(SRCDIR)\*.o $(TARGET).exe 2>NUL
+	del /Q $(MAIN_TARGET).exe $(CONVERT_TARGET).exe $(TEST_TARGET).exe 2>NUL
 
-# 运行
-run: $(TARGET)
-	.\$(TARGET).exe
+# 运行主程序
+run: $(MAIN_TARGET)
+	.\$(MAIN_TARGET).exe
 
-.PHONY: all clean run
+.PHONY: all main convert test runtest clean run

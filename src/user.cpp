@@ -1,17 +1,28 @@
 #include "user.h"
 #include "crypto.h"
 #include "file_io.h"
+#include "types.h"
 #include <iostream>
 #include <fstream>
 
 using namespace std;
+
+static string getAdminPassword() {
+    map<string, string> users = loadUsers();
+    auto it = users.find(ADMIN_USERNAME);
+    if (it != users.end()) {
+        return it->second;
+    }
+    return ADMIN_PASSWORD;
+}
 
 bool registerUser() {
     cout << "\n=== 用户注册 ===" << endl;
     cout << "请输入管理员密码: ";
     string adminPwd = getHiddenInput();
 
-    if (adminPwd != ADMIN_PASSWORD) {
+    string actualAdminPwd = getAdminPassword();
+    if (adminPwd != actualAdminPwd) {
         cout << "管理员密码错误！" << endl;
         return false;
     }
@@ -72,22 +83,33 @@ bool loginUser(string& loggedInUser, bool& isAdmin) {
     cout << "请输入密码: ";
     string password = getHiddenInput();
 
+    map<string, string> users = loadUsers();
+    auto it = users.find(username);
+
+    if (it != users.end() && it->second == password) {
+        if (username == ADMIN_USERNAME) {
+            loggedInUser = ADMIN_USERNAME;
+            isAdmin = true;
+            cout << "管理员登录成功！" << endl;
+        } else {
+            loggedInUser = username;
+            isAdmin = false;
+            cout << "登录成功！欢迎 " << username << endl;
+        }
+        return true;
+    }
+
     if (username == ADMIN_USERNAME && password == ADMIN_PASSWORD) {
         loggedInUser = ADMIN_USERNAME;
         isAdmin = true;
         cout << "管理员登录成功！" << endl;
+        if (it == users.end()) {
+            users[ADMIN_USERNAME] = ADMIN_PASSWORD;
+            saveUsers(users);
+        }
         return true;
     }
 
-    map<string, string> users = loadUsers();
-    auto it = users.find(username);
-    if (it != users.end() && it->second == password) {
-        loggedInUser = username;
-        isAdmin = false;
-        cout << "登录成功！欢迎 " << username << endl;
-        return true;
-    } else {
-        cout << "用户名或密码错误！" << endl;
-        return false;
-    }
+    cout << "用户名或密码错误！" << endl;
+    return false;
 }
