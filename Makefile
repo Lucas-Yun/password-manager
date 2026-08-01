@@ -1,8 +1,8 @@
 # PasswordManager Makefile
 # 用法:
-#   make          编译主程序和转换工具
+#   make          编译主程序和诊断测试
 #   make main     仅编译主程序
-#   make convert  仅编译转换工具
+#   make test     仅编译诊断测试
 #   make clean    清理编译产物
 #   make run      编译主程序并运行
 
@@ -19,24 +19,16 @@ INCDIR = include
 MAIN_TARGET = password_manager
 MAIN_SRCS = $(SRCDIR)/main.cpp $(SRCDIR)/crypto.cpp $(SRCDIR)/file_io.cpp $(SRCDIR)/user.cpp $(SRCDIR)/menu.cpp
 
-# 转换工具（必须链接 crypto.cpp，与主程序共享同一套加密实现）
-CONVERT_TARGET = convert
-CONVERT_SRCS = $(SRCDIR)/convert.cpp $(SRCDIR)/crypto.cpp
-
 # 加密诊断测试程序
 TEST_TARGET = crypto_test
 TEST_SRCS = $(SRCDIR)/crypto_test.cpp $(SRCDIR)/crypto.cpp
 
 # 默认目标：编译全部
-all: $(MAIN_TARGET) $(CONVERT_TARGET) $(TEST_TARGET)
+all: $(MAIN_TARGET) $(TEST_TARGET)
 
 # 主程序
 $(MAIN_TARGET): $(MAIN_SRCS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(MAIN_SRCS) -o $@
-
-# 转换工具
-$(CONVERT_TARGET): $(CONVERT_SRCS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(CONVERT_SRCS) -o $@
 
 # 诊断测试
 $(TEST_TARGET): $(TEST_SRCS)
@@ -44,9 +36,6 @@ $(TEST_TARGET): $(TEST_SRCS)
 
 # 仅编译主程序
 main: $(MAIN_TARGET)
-
-# 仅编译转换工具
-convert: $(CONVERT_TARGET)
 
 # 仅编译诊断测试
 test: $(TEST_TARGET)
@@ -57,10 +46,10 @@ runtest: $(TEST_TARGET)
 
 # 清理
 clean:
-	del /Q $(MAIN_TARGET).exe $(CONVERT_TARGET).exe $(TEST_TARGET).exe 2>NUL
+	del /Q $(MAIN_TARGET).exe $(TEST_TARGET).exe 2>NUL
 
 # 运行主程序
 run: $(MAIN_TARGET)
 	.\$(MAIN_TARGET).exe
 
-.PHONY: all main convert test runtest clean run
+.PHONY: all main test runtest clean run

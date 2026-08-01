@@ -142,11 +142,10 @@ string decryptData(const string& data) {
 
     // 检查版本标识
     if ((unsigned char)data[0] != CRYPTO_VERSION) {
-        // 旧版数据，尝试用旧版 XOR 解密（向后兼容）
-        return legacyXorCrypt(data);
+        return "";
     }
 
-    // 新版格式: [版本(1)] + [IV(8)] + [密文]
+    // 文件格式: [版本(1)] + [IV(8)] + [密文]
     if (data.size() < 1 + XTEA_BLOCK_SIZE) return "";
 
     const unsigned char* iv = (const unsigned char*)data.c_str() + 1;
@@ -181,16 +180,6 @@ string decryptData(const string& data) {
 
     // 去除 PKCS7 填充
     return pkcs7Unpad(result);
-}
-
-// ========== 旧版 XOR 加密（供转换程序使用） ==========
-
-string legacyXorCrypt(const string& data) {
-    string result = data;
-    for (size_t i = 0; i < result.size(); i++) {
-        result[i] ^= LEGACY_XOR_KEY;
-    }
-    return result;
 }
 
 // ========== 密码隐藏输入 ==========

@@ -9,10 +9,6 @@ bool createDirectory(const string& dir) {
     return CreateDirectory(dir.c_str(), NULL) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
-static bool isLegacyFormat(const string& data) {
-    return !data.empty() && (unsigned char)data[0] != CRYPTO_VERSION;
-}
-
 map<string, string> loadUsers() {
     map<string, string> users;
     string filepath = DATA_DIR + USER_FILE;
@@ -20,7 +16,6 @@ map<string, string> loadUsers() {
     if (file.is_open()) {
         string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
         file.close();
-        bool wasLegacy = isLegacyFormat(content);
         if (!content.empty()) {
             string decrypted = decryptData(content);
             size_t pos = 0;
@@ -35,9 +30,6 @@ map<string, string> loadUsers() {
                     users[username] = password;
                 }
                 pos = newlinePos + 1;
-            }
-            if (wasLegacy && !users.empty()) {
-                saveUsers(users);
             }
         }
     }
@@ -65,7 +57,6 @@ map<string, PlatformInfo> loadPasswords(const string& username) {
     if (file.is_open()) {
         string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
         file.close();
-        bool wasLegacy = isLegacyFormat(content);
         if (!content.empty()) {
             string decrypted = decryptData(content);
             size_t pos = 0;
@@ -109,9 +100,6 @@ map<string, PlatformInfo> loadPasswords(const string& username) {
                     }
                 }
                 pos = newlinePos + 1;
-            }
-            if (wasLegacy && !passwords.empty()) {
-                savePasswords(username, passwords);
             }
         }
     }

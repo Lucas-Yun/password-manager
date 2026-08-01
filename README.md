@@ -35,6 +35,7 @@
 - 密码输入隐藏显示（`*`）
 - **XTEA 块加密算法 + CBC 模式 + PKCS7 填充**（128位密钥，32轮加密）
 - 每次加密使用随机 IV（初始化向量），相同数据每次加密结果不同
+- 仅保留 XTEA-CBC 一种加密方案
 - 用户数据完全隔离（A 用户无法访问 B 用户数据）
 - 管理员不可查看普通用户的密码隐私
 - 注册需管理员密码验证，防止恶意注册
@@ -56,7 +57,7 @@ PasswordManager/
 │   ├── user.cpp            # 用户注册/登录实现
 │   ├── menu.cpp            # 菜单与业务逻辑实现
 │   ├── main.cpp            # 主程序入口
-│   └── convert.cpp         # 数据格式转换工具
+│   └── crypto_test.cpp     # 加密一致性诊断测试
 ├── Makefile                # 构建脚本
 ├── .gitignore
 ├── LICENSE
@@ -74,9 +75,9 @@ PasswordManager/
 ### 使用 Makefile
 
 ```bash
-make          # 编译主程序 + 转换工具
+make          # 编译主程序 + 诊断测试
 make main     # 仅编译主程序
-make convert  # 仅编译转换工具
+make test     # 仅编译诊断测试
 make run      # 编译并运行主程序
 make clean    # 清理编译产物
 ```
@@ -88,22 +89,17 @@ make clean    # 清理编译产物
 g++ -std=c++11 -Wall -finput-charset=UTF-8 -Iinclude ^
     src/main.cpp src/crypto.cpp src/file_io.cpp src/user.cpp src/menu.cpp ^
     -o password_manager.exe
-
-# 转换工具
-g++ -std=c++11 -Wall -finput-charset=UTF-8 -Iinclude ^
-    src/convert.cpp -o convert.exe
 ```
 
 ### 运行
 
 ```bash
 password_manager.exe    # 主程序
-convert.exe             # 数据格式转换工具
 ```
 
 ## 加密方案
 
-### 新版加密（v2）：XTEA-CBC
+### XTEA-CBC
 
 | 项目 | 说明 |
 |------|------|
@@ -114,29 +110,6 @@ convert.exe             # 数据格式转换工具
 | 填充方式 | PKCS7 |
 | IV（初始化向量）| 8 字节随机生成 |
 | 文件格式 | `[版本标识 0x02]` + `[IV 8字节]` + `[密文]` |
-
-### 旧版加密（v1）：单字节 XOR
-
-所有数据用固定密钥 `0x5A` 逐字节异或，安全性低。
-
-### 数据格式转换
-
-如果从旧版本升级，使用 `convert.exe` 转换已有数据：
-
-```bash
-# 转换默认 data 目录
-convert.exe
-
-# 转换指定目录
-convert.exe D:\my\data\
-```
-
-转换工具会：
-1. 自动扫描目录下所有 `.dat` 文件
-2. 识别旧版格式（跳过已转换的新版文件）
-3. 用旧版 XOR 解密还原明文
-4. 用新版 XTEA-CBC 重新加密
-5. 自动创建 `.bak` 备份文件
 
 ## 使用说明
 
@@ -153,12 +126,6 @@ convert.exe D:\my\data\
 - **初始密码**: `admin_root`
 - 登录后可在菜单中修改管理员密码（修改后立即生效，无需重新编译）
 
-### 从旧版升级
-
-1. 编译新版本：`make`
-2. 运行转换工具：`convert.exe`
-3. 确认转换成功后，运行主程序：`password_manager.exe`
-
 ### 数据存储
 
 - 用户数据: `data/users.dat`（XTEA 加密存储）
@@ -174,7 +141,7 @@ convert.exe D:\my\data\
 | 用户模块 | `user.h/cpp` | 用户注册、登录验证、管理员密码动态读取 |
 | 菜单模块 | `menu.h/cpp` | 界面展示、业务逻辑、输入处理、搜索/编辑/统计功能 |
 | 类型定义 | `types.h` | 全局常量、加密密钥与数据结构 |
-| 转换工具 | `convert.cpp` | 旧版 XOR 数据转换为新版 XTEA-CBC 格式 |
+| 诊断测试 | `crypto_test.cpp` | XTEA-CBC 加解密一致性验证 |
 
 ## 许可证
 
