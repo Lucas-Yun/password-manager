@@ -11,6 +11,7 @@
 #include <conio.h>
 #include <windows.h>
 #include <ctime>
+#include <sstream>
 
 using namespace std;
 
@@ -85,8 +86,13 @@ void addInfo(const string& username) {
         return;
     }
 
-    cout << "请输入密码: ";
+    cout << "请输入密码（或输入 R 自动生成随机密码）: ";
     string password = getHiddenInput();
+
+    if (password == "R" || password == "r") {
+        password = generateRandomPassword(16);
+        cout << "已生成随机密码: " << password << endl;
+    }
 
     if (password.empty()) {
         cout << "密码不能为空！" << endl;
@@ -95,9 +101,20 @@ void addInfo(const string& username) {
         return;
     }
 
+    // 显示密码强度
+    int strength = checkPasswordStrength(password);
+    cout << "密码强度: " << getStrengthText(strength) << endl;
+
+    // 输入备注（可选）
+    cout << "请输入备注（可选，直接回车跳过）: ";
+    string note;
+    getline(cin, note);
+
     PlatformInfo info;
     info.accounts = accounts;
     info.password = password;
+    info.note = note;
+    info.createTime = getCurrentTime();
     passwords[platform] = info;
     savePasswords(username, passwords);
 
@@ -130,12 +147,28 @@ void queryInfo(const string& username) {
         cout << "  " << (i + 1) << ". " << it->second.accounts[i] << endl;
     }
     cout << "密码: " << it->second.password << endl;
-    cout << "（30秒后自动返回，或按任意键立即返回）" << endl;
+    if (!it->second.note.empty()) {
+        cout << "备注: " << it->second.note << endl;
+    }
+    if (!it->second.createTime.empty()) {
+        cout << "创建时间: " << it->second.createTime << endl;
+    }
+    cout << "--------------------------------" << endl;
+    cout << "按 C 复制密码到剪贴板，其他键返回（30秒后自动返回）" << endl;
 
     time_t startTime = time(nullptr);
     while (true) {
         if (_kbhit()) {
-            _getch();
+            char key = _getch();
+            if (key == 'C' || key == 'c') {
+                if (copyToClipboard(it->second.password)) {
+                    cout << "密码已复制到剪贴板！" << endl;
+                } else {
+                    cout << "复制失败！" << endl;
+                }
+                cout << "按任意键返回..." << endl;
+                _getch();
+            }
             break;
         }
         time_t currentTime = time(nullptr);
@@ -211,7 +244,11 @@ void listAllPlatforms(const string& username) {
         for (const auto& pair : passwords) {
             size_t accCount = pair.second.accounts.size();
             totalAccounts += (int)accCount;
-            cout << index << ". [" << pair.first << "]   账号数: " << accCount << endl;
+            cout << index << ". [" << pair.first << "]   账号数: " << accCount;
+            if (!pair.second.createTime.empty()) {
+                cout << "   创建: " << pair.second.createTime;
+            }
+            cout << endl;
             index++;
         }
         cout << "----------------------------------------" << endl;
@@ -265,12 +302,19 @@ void editInfo(const string& username) {
             cout << "  " << (i + 1) << ". " << it->second.accounts[i] << endl;
         }
         cout << "当前密码: ********" << endl;
+        if (!it->second.note.empty()) {
+            cout << "当前备注: " << it->second.note << endl;
+        }
+        if (!it->second.createTime.empty()) {
+            cout << "创建时间: " << it->second.createTime << endl;
+        }
         cout << "--------------------------------" << endl;
         cout << "1、添加账号" << endl;
         cout << "2、删除账号" << endl;
         cout << "3、修改密码" << endl;
         cout << "4、重命名平台" << endl;
-        cout << "5、保存并返回" << endl;
+        cout << "5、编辑备注" << endl;
+        cout << "6、保存并返回" << endl;
         cout << "请选择: ";
 
         string choice;
@@ -308,9 +352,15 @@ void editInfo(const string& username) {
             cout << "按任意键继续..." << endl;
             _getch();
         } else if (choice == "3") {
-            cout << "请输入新密码: ";
+            cout << "请输入新密码（或输入 R 自动生成随机密码）: ";
             string newPwd = getHiddenInput();
+            if (newPwd == "R" || newPwd == "r") {
+                newPwd = generateRandomPassword(16);
+                cout << "已生成随机密码: " << newPwd << endl;
+            }
             if (!newPwd.empty()) {
+                int strength = checkPasswordStrength(newPwd);
+                cout << "密码强度: " << getStrengthText(strength) << endl;
                 cout << "请确认新密码: ";
                 string confirmPwd = getHiddenInput();
                 if (newPwd == confirmPwd) {
@@ -343,6 +393,15 @@ void editInfo(const string& username) {
             cout << "按任意键继续..." << endl;
             _getch();
         } else if (choice == "5") {
+            cout << "当前备注: " << (it->second.note.empty() ? "（无）" : it->second.note) << endl;
+            cout << "请输入新备注（直接回车清除备注）: ";
+            string newNote;
+            getline(cin, newNote);
+            it->second.note = newNote;
+            cout << "备注已更新！" << endl;
+            cout << "按任意键继续..." << endl;
+            _getch();
+        } else if (choice == "6") {
             if (it->second.accounts.empty()) {
                 cout << "至少需要保留一个账号！请先添加账号。" << endl;
                 cout << "按任意键继续..." << endl;
@@ -419,12 +478,28 @@ void searchPlatforms(const string& username) {
                     cout << "  " << (i + 1) << ". " << item.second.accounts[i] << endl;
                 }
                 cout << "密码: " << item.second.password << endl;
-                cout << "（30秒后自动返回，或按任意键立即返回）" << endl;
+                if (!item.second.note.empty()) {
+                    cout << "备注: " << item.second.note << endl;
+                }
+                if (!item.second.createTime.empty()) {
+                    cout << "创建时间: " << item.second.createTime << endl;
+                }
+                cout << "--------------------------------" << endl;
+                cout << "按 C 复制密码到剪贴板，其他键返回（30秒后自动返回）" << endl;
 
                 time_t startTime = time(nullptr);
                 while (true) {
                     if (_kbhit()) {
-                        _getch();
+                        char key = _getch();
+                        if (key == 'C' || key == 'c') {
+                            if (copyToClipboard(item.second.password)) {
+                                cout << "密码已复制到剪贴板！" << endl;
+                            } else {
+                                cout << "复制失败！" << endl;
+                            }
+                            cout << "按任意键返回..." << endl;
+                            _getch();
+                        }
                         break;
                     }
                     time_t currentTime = time(nullptr);
@@ -466,6 +541,9 @@ void changeUserPassword(const string& username) {
         return;
     }
 
+    int strength = checkPasswordStrength(newPwd);
+    cout << "密码强度: " << getStrengthText(strength) << endl;
+
     cout << "请确认新密码: ";
     string confirmPwd = getHiddenInput();
 
@@ -491,6 +569,108 @@ void changeUserPassword(const string& username) {
     _getch();
 }
 
+void exportData(const string& username) {
+    cout << "\n=== 导出数据 ===" << endl;
+    cin.ignore();
+
+    map<string, PlatformInfo> passwords = loadPasswords(username);
+    if (passwords.empty()) {
+        cout << "当前没有任何平台信息可导出！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    cout << "请输入导出文件路径（直接回车使用默认 export_<用户名>.txt）: ";
+    string filepath;
+    getline(cin, filepath);
+    if (filepath.empty()) {
+        filepath = "export_" + username + ".txt";
+    }
+
+    ofstream outfile(filepath);
+    if (!outfile.is_open()) {
+        cout << "无法创建文件！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    outfile << "========== 密码导出 ==========" << endl;
+    outfile << "用户: " << username << endl;
+    outfile << "导出时间: " << getCurrentTime() << endl;
+    outfile << "平台总数: " << passwords.size() << endl;
+    outfile << "==============================" << endl << endl;
+
+    for (const auto& pair : passwords) {
+        outfile << "【平台】" << pair.first << endl;
+        outfile << "  账号列表:" << endl;
+        for (size_t i = 0; i < pair.second.accounts.size(); i++) {
+            outfile << "    " << (i + 1) << ". " << pair.second.accounts[i] << endl;
+        }
+        outfile << "  密码: " << pair.second.password << endl;
+        if (!pair.second.note.empty()) {
+            outfile << "  备注: " << pair.second.note << endl;
+        }
+        if (!pair.second.createTime.empty()) {
+            outfile << "  创建时间: " << pair.second.createTime << endl;
+        }
+        outfile << endl;
+    }
+
+    outfile.close();
+    cout << "数据已导出到: " << filepath << endl;
+    cout << "警告: 导出文件为明文，请注意安全！" << endl;
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
+void passwordGenerator() {
+    cout << "\n=== 随机密码生成器 ===" << endl;
+
+    cout << "请输入密码长度（8-64，默认16）: ";
+    string lenStr;
+    cin.ignore();
+    getline(cin, lenStr);
+
+    int len = 16;
+    if (!lenStr.empty()) {
+        len = atoi(lenStr.c_str());
+        if (len < 8) len = 8;
+        if (len > 64) len = 64;
+    }
+
+    string pwd = generateRandomPassword(len);
+    int strength = checkPasswordStrength(pwd);
+
+    cout << "\n生成的密码: " << pwd << endl;
+    cout << "密码长度: " << pwd.size() << endl;
+    cout << "密码强度: " << getStrengthText(strength) << endl;
+    cout << "--------------------------------" << endl;
+    cout << "按 C 复制到剪贴板，R 重新生成，其他键返回: ";
+
+    while (true) {
+        char key = _getch();
+        if (key == 'C' || key == 'c') {
+            if (copyToClipboard(pwd)) {
+                cout << "\n密码已复制到剪贴板！" << endl;
+            } else {
+                cout << "\n复制失败！" << endl;
+            }
+            break;
+        } else if (key == 'R' || key == 'r') {
+            pwd = generateRandomPassword(len);
+            strength = checkPasswordStrength(pwd);
+            cout << "\n重新生成: " << pwd << endl;
+            cout << "密码强度: " << getStrengthText(strength) << endl;
+            cout << "按 C 复制到剪贴板，R 重新生成，其他键返回: ";
+        } else {
+            break;
+        }
+    }
+    cout << endl;
+}
+
 void showUserMenu(const string& username) {
     while (true) {
         system("cls");
@@ -503,7 +683,9 @@ void showUserMenu(const string& username) {
         cout << "5、编辑信息" << endl;
         cout << "6、搜索平台" << endl;
         cout << "7、修改密码" << endl;
-        cout << "8、返回上一级" << endl;
+        cout << "8、导出数据" << endl;
+        cout << "9、随机密码生成器" << endl;
+        cout << "10、返回上一级" << endl;
         cout << "请选择（输入序号）: ";
 
         string choice;
@@ -524,10 +706,14 @@ void showUserMenu(const string& username) {
         } else if (choice == "7") {
             changeUserPassword(username);
         } else if (choice == "8") {
+            exportData(username);
+        } else if (choice == "9") {
+            passwordGenerator();
+        } else if (choice == "10") {
             cout << "返回上一级..." << endl;
             break;
         } else {
-            cout << "输入无效，请输入1-8之间的数字！" << endl;
+            cout << "输入无效，请输入1-10之间的数字！" << endl;
             cout << "按任意键继续..." << endl;
             cin.ignore();
             _getch();
@@ -758,6 +944,9 @@ void adminChangeOwnPassword() {
         return;
     }
 
+    int strength = checkPasswordStrength(newPwd);
+    cout << "密码强度: " << getStrengthText(strength) << endl;
+
     cout << "请确认新密码: ";
     string confirmPwd = getHiddenInput();
 
@@ -856,6 +1045,112 @@ void adminInitSystem() {
     _getch();
 }
 
+void adminBackupData() {
+    cout << "\n=== 数据备份 ===" << endl;
+
+    // 创建备份目录名（带时间戳）
+    string timestamp = getCurrentTime();
+    for (size_t i = 0; i < timestamp.size(); i++) {
+        if (timestamp[i] == ':' || timestamp[i] == ' ' || timestamp[i] == '-') {
+            timestamp[i] = '_';
+        }
+    }
+    string backupDir = "backup_" + timestamp;
+
+    if (!createDirectory(backupDir)) {
+        cout << "无法创建备份目录！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    // 复制 data 目录下所有文件
+    string searchData = DATA_DIR + "*";
+    WIN32_FIND_DATA findData;
+    HANDLE hFind = FindFirstFile(searchData.c_str(), &findData);
+    int fileCount = 0;
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                string srcFile = DATA_DIR + findData.cFileName;
+                string dstFile = backupDir + "\\" + findData.cFileName;
+                if (CopyFile(srcFile.c_str(), dstFile.c_str(), FALSE)) {
+                    fileCount++;
+                }
+            }
+        } while (FindNextFile(hFind, &findData));
+        FindClose(hFind);
+    }
+
+    cout << "备份完成！" << endl;
+    cout << "备份目录: " << backupDir << endl;
+    cout << "备份文件数: " << fileCount << endl;
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
+void adminRestoreData() {
+    cout << "\n=== 数据恢复 ===" << endl;
+    cin.ignore();
+
+    cout << "请输入备份目录路径（例如 backup_2026_08_06_12_00_00）: ";
+    string backupDir;
+    getline(cin, backupDir);
+
+    if (backupDir.empty()) {
+        cout << "未输入路径！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    // 去除末尾的反斜杠
+    if (backupDir[backupDir.size() - 1] == '\\') {
+        backupDir = backupDir.substr(0, backupDir.size() - 1);
+    }
+
+    string searchPattern = backupDir + "\\*";
+    WIN32_FIND_DATA findData;
+    HANDLE hFind = FindFirstFile(searchPattern.c_str(), &findData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        cout << "备份目录不存在或为空！" << endl;
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    cout << "警告：此操作将覆盖当前所有数据！" << endl;
+    cout << "确认恢复？(输入 Y 确认，其他键取消): ";
+    char confirm = _getch();
+    cout << confirm << endl;
+
+    if (confirm != 'Y' && confirm != 'y') {
+        cout << "已取消恢复。" << endl;
+        FindClose(hFind);
+        cout << "按任意键返回..." << endl;
+        _getch();
+        return;
+    }
+
+    int fileCount = 0;
+    do {
+        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            string srcFile = backupDir + "\\" + findData.cFileName;
+            string dstFile = DATA_DIR + findData.cFileName;
+            if (CopyFile(srcFile.c_str(), dstFile.c_str(), FALSE)) {
+                fileCount++;
+            }
+        }
+    } while (FindNextFile(hFind, &findData));
+    FindClose(hFind);
+
+    cout << "恢复完成！恢复文件数: " << fileCount << endl;
+    cout << "按任意键返回..." << endl;
+    _getch();
+}
+
 void showAdminMenu(const string& username) {
     while (true) {
         system("cls");
@@ -867,8 +1162,10 @@ void showAdminMenu(const string& username) {
         cout << "4、修改用户密码" << endl;
         cout << "5、修改管理员密码" << endl;
         cout << "6、系统统计信息" << endl;
-        cout << "7、初始化系统" << endl;
-        cout << "8、返回上一级" << endl;
+        cout << "7、数据备份" << endl;
+        cout << "8、数据恢复" << endl;
+        cout << "9、初始化系统" << endl;
+        cout << "10、返回上一级" << endl;
         cout << "请选择（输入序号）: ";
 
         string choice;
@@ -887,12 +1184,16 @@ void showAdminMenu(const string& username) {
         } else if (choice == "6") {
             adminSystemStats();
         } else if (choice == "7") {
-            adminInitSystem();
+            adminBackupData();
         } else if (choice == "8") {
+            adminRestoreData();
+        } else if (choice == "9") {
+            adminInitSystem();
+        } else if (choice == "10") {
             cout << "返回上一级..." << endl;
             break;
         } else {
-            cout << "输入无效，请输入1-8之间的数字！" << endl;
+            cout << "输入无效，请输入1-10之间的数字！" << endl;
             cout << "按任意键继续..." << endl;
             cin.ignore();
             _getch();

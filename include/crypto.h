@@ -30,4 +30,38 @@ std::string decryptData(const std::string& data);
  */
 std::string getHiddenInput();
 
+/**
+ * @brief 生成随机密码
+ * @param length 密码长度（默认16）
+ * @return 随机密码字符串
+ */
+std::string generateRandomPassword(int length = 16);
+
+/**
+ * @brief 检测密码强度
+ * @param password 待检测的密码
+ * @return 强度等级: 0=弱, 1=中, 2=强, 3=非常强
+ */
+int checkPasswordStrength(const std::string& password);
+
+/**
+ * @brief 获取密码强度描述文本
+ * @param level 强度等级
+ * @return 描述文本
+ */
+std::string getStrengthText(int level);
+
+/**
+ * @brief 复制文本到剪贴板
+ * @param text 要复制的文本
+ * @return 是否成功
+ */
+bool copyToClipboard(const std::string& text);
+
+/**
+ * @brief 获取当前时间字符串
+ * @return 格式: YYYY-MM-DD HH:MM:SS
+ */
+std::string getCurrentTime();
+
 #endif // CRYPTO_H

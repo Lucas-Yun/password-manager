@@ -31,6 +31,8 @@ const unsigned char CRYPTO_VERSION = 0x02;
 struct PlatformInfo {
     std::vector<std::string> accounts;  // 账号列表（可多个）
     std::string password;               // 密码（仅一个）
+    std::string note;                   // 备注（可选）
+    std::string createTime;             // 创建时间（YYYY-MM-DD HH:MM:SS）
 };
 
 #endif // TYPES_H

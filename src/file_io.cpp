@@ -73,10 +73,24 @@ map<string, PlatformInfo> loadPasswords(const string& username) {
                     size_t secondColon = rest.find(':');
                     if (secondColon != string::npos) {
                         string accountsStr = rest.substr(0, secondColon);
-                        string password = rest.substr(secondColon + 1);
+                        string remainder = rest.substr(secondColon + 1);
 
+                        // 解析 password \t note \t createTime（向后兼容旧格式）
                         PlatformInfo info;
-                        info.password = password;
+                        size_t tab1 = remainder.find('\t');
+                        if (tab1 != string::npos) {
+                            info.password = remainder.substr(0, tab1);
+                            string afterTab = remainder.substr(tab1 + 1);
+                            size_t tab2 = afterTab.find('\t');
+                            if (tab2 != string::npos) {
+                                info.note = afterTab.substr(0, tab2);
+                                info.createTime = afterTab.substr(tab2 + 1);
+                            } else {
+                                info.note = afterTab;
+                            }
+                        } else {
+                            info.password = remainder;
+                        }
 
                         size_t accountPos = 0;
                         while (accountPos < accountsStr.size()) {
@@ -114,7 +128,10 @@ void savePasswords(const string& username, const map<string, PlatformInfo>& pass
             if (i > 0) data += ",";
             data += pair.second.accounts[i];
         }
-        data += ":" + pair.second.password + "\n";
+        data += ":" + pair.second.password;
+        data += "\t" + pair.second.note;
+        data += "\t" + pair.second.createTime;
+        data += "\n";
     }
     string encrypted = encryptData(data);
     string filepath = DATA_DIR + username + ".dat";
